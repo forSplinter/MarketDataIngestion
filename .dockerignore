@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb
+.DS_Store
+.env
+*.log
+*.csv
+venv/
+.cache/
+.idea/
+*.db
+data/
+archive/tar
