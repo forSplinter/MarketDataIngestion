@@ -1,0 +1,10 @@
+FROM confluentinc/cp-kafka:7.4.0
+
+WORKDIR /scripts
+
+USER root
+
+COPY scripts/kafka-topic.sh kafka-topic.sh
+RUN chmod +x kafka-topic.sh
+
+ENTRYPOINT ["./kafka-topic.sh"]

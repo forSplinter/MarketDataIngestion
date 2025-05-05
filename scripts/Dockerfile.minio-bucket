@@ -1,0 +1,10 @@
+FROM minio/mc:latest
+
+WORKDIR /scripts
+
+USER root
+
+COPY scripts/minio-bucket.sh  minio-bucket.sh
+RUN chmod +x minio-bucket.sh
+
+ENTRYPOINT ["./minio-bucket.sh"]

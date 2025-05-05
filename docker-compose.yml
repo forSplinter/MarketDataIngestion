@@ -31,13 +31,12 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
       CONFLUENT_METRICS_ENABLE: 'false'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+      KAFKA_CONFLUENT_LICENSE: ' '
     healthcheck:
       test: ['CMD', 'bash', '-c', "nc -z localhost 9092"]
       interval: 10s
@@ -58,16 +57,47 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - alpacastream
+  
+  kafka-topic-init:
+    build: 
+      context: .
+      dockerfile: scripts/Dockerfile.kafka-topic
+    env_file:
+      - .env
+    depends_on:
+      broker:
+        condition: service_healthy
+    networks:
+      - alpacastream
+    restart: "no"
+  
+  minio-bucket-init:
+    build: 
+      context: .
+      dockerfile:  scripts/Dockerfile.minio-bucket
+    env_file:
+      - .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - alpacastream
+    restart: "no"
 
   spark:
     image: bitnami/spark:latest
     container_name: spark
     environment:
       MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
     ports:
       - "4040:4040"
     volumes:

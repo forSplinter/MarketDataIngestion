@@ -1,6 +1,9 @@
+#!/bin/bash
+
 echo "Start creating topic"
 
-source .env
+
+IFS=',' read -ra TOPIC_ARRAY <<< "$KAFKA_TOPICS"
 
 for topic in "${KAFKA_TOPICS}" 
 do
@@ -14,4 +17,6 @@ do
 done
 
 echo "All topics created"
-kafka-topics --bootstrap-server "${KAFKA_BOOTSTRAP_SERVER}"--list
+kafka-topics --bootstrap-server "${KAFKA_BOOTSTRAP_SERVER}" --list
+
+
