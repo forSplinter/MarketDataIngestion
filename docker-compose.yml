@@ -181,6 +181,25 @@ services:
         condition: service_healthy
     networks:
       - alpacastream
+    
+  alpaca-consumer:
+    build:
+      context: ./consumers
+    environment:
+      KAFKA_BROKER: broker:29092
+      KAFKA_TOPIC: alpaca_raw_stream
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    depends_on:
+      broker:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - alpacastream
 
 networks:
   alpacastream:
