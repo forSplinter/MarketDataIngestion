@@ -64,7 +64,7 @@ services:
       retries: 5
     networks:
       - alpacastream
-  
+
   kafka-topic-init:
     build: 
       context: .
@@ -77,11 +77,11 @@ services:
     networks:
       - alpacastream
     restart: "no"
-  
+
   minio-bucket-init:
     build: 
       context: .
-      dockerfile:  scripts/Dockerfile.minio-bucket
+      dockerfile: scripts/Dockerfile.minio-bucket
     env_file:
       - .env
     depends_on:
@@ -110,6 +110,8 @@ services:
   postgres:
     image: postgres:15
     container_name: postgres
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     environment:
@@ -121,6 +123,60 @@ services:
     networks:
       - alpacastream
 
+  x-airflow-common:
+    &airflow-common
+    image: apache/airflow:2.6.1-python3.9
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-marketdb}
+      AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:-}
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+      AIRFLOW__CORE__LOGGING_LEVEL: INFO
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+    networks:
+      - alpacastream
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command: >
+      -c "airflow users list || (airflow db init && airflow users create
+        --role Admin
+        --username ${AIRFLOW_ADMIN_USER:-admin}
+        --password ${AIRFLOW_ADMIN_PASSWORD:-airflow}
+        --firstname ${AIRFLOW_ADMIN_FIRSTNAME:-Admin}
+        --lastname ${AIRFLOW_ADMIN_LASTNAME:-User}
+        --email ${AIRFLOW_ADMIN_EMAIL:-email})"
+    restart: on-failure
+    networks:
+      - alpacastream
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - alpacastream
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow_scheduler
+    command: airflow scheduler
+    restart: always
+    networks:
+      - alpacastream
+
   mongodb:
     image: mongo:6.0
     container_name: mongodb
@@ -129,59 +185,6 @@ services:
     networks:
       - alpacastream
 
-  airflow-webserver:
-    image: apache/airflow:2.6.1-python3.9
-    container_name: airflow-webserver
-    depends_on:
-      - postgres
-    ports:
-      - "8080:8080"
-    environment:
-      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-marketdb}
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-    command: >
-      bash -c "airflow db upgrade && \
-              airflow users create \
-                --username admin \
-                --firstname admin \
-                --lastname admin \
-                --role Admin \
-                --email admin@example.com \
-                --password admin && \
-              airflow webserver"
-    networks:
-      - alpacastream
-
-  airflow-scheduler:
-    image: apache/airflow:2.6.1-python3.9
-    container_name: airflow-scheduler
-    depends_on:
-      - airflow-webserver
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-    command: airflow scheduler
-    networks:
-      - alpacastream
-    
-  alpaca-producer:
-    build:
-      context: ./producers
-    environment:
-      ALPACA_API_KEY: ${ALPACA_API_KEY}
-      ALPACA_SECRET_KEY: ${ALPACA_SECRET_KEY}
-    depends_on:
-      broker:
-        condition: service_healthy
-    networks:
-      - alpacastream
-    
   alpaca-consumer:
     build:
       context: ./consumers
@@ -207,5 +210,3 @@ networks:
 
 volumes:
   postgres_data:
-
-    
