@@ -13,6 +13,7 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "alpaca_raw_stream")
 SYMBOLS = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN"]
 
 if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
+    print(f'"ALPACA_API_KEY: {ALPACA_API_KEY}"')
     raise ValueError("Alpaca API credentials not set in environment variables.")
 
 # Initialize client & producer
