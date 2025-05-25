@@ -239,7 +239,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: python kafka_consumer_alpaca.py
+    command: python extraction/kafka_consumer_alpaca.py
     environment:
       KAFKA_BROKER: broker:29092
       KAFKA_TOPIC: alpaca_raw_stream
@@ -262,7 +262,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: python kafka_consumer_finnnhub.py
+    command: python extraction/kafka_consumer_finnnhub.py
     environment:
       KAFKA_BROKER: broker:29092
       KAFKA_TOPIC: finnhub_raw_stream,finnhub_news_stream

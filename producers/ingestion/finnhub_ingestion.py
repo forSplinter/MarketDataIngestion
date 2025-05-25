@@ -5,17 +5,17 @@ from socket import PF_PACKET
 from kafka import KafkaProducer
 import finnhub
 
-FINNUB_API_KEY = os.getenv("FINNHUB_API_KEY")
+FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "broker:29092")
 KAFKA_RECO_TOPIC = os.getenv("KAFKA_TOPIC", "finnhub_raw_stream")
 KAFKA_NEWS_TOPIC = os.getenv("KAFKA_TOPIC", "finnhub_news_stream")
 
 SYMBOLS = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN"]
 
-if not FINNUB_API_KEY:
+if not FINNHUB_API_KEY:
     raise ValueError("Finnhub API key not set in environment variables.")
 
-client = finnhub.Client(api_key=FINNUB_API_KEY)
+client = finnhub.Client(api_key=FINNHUB_API_KEY)
 
 
 def get_market_day():
