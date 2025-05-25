@@ -33,7 +33,7 @@ s3 = boto3.client(
 
 
 def upload_to_minio(symbol, event_date, messages):
-    path = f"{KAFKA_TOPIC}/symbol={symbol}/event_date={event_date}/"
+    path = f"ALPACA_API/{symbol}/event_date={event_date}/"
     filename = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + ".json"
     key = path + filename
     json_data = json.dumps(messages, indent=2).encode("utf-8")

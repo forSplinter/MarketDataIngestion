@@ -10,7 +10,7 @@ KAFKA_TOPICS = os.getenv(
     "KAFKA_TOPICS", "finnhub_raw_stream,finnhub_news_stream"
 ).split(",")
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 BUCKET_NAME = "raw"
@@ -27,14 +27,14 @@ consumer = KafkaConsumer(
 s3 = boto3.client(
     "s3",
     endpoint_url=MINIO_ENDPOINT,
-    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
     region_name="eu-west-1",
 )
 
 
 def upload_to_minio(data_type, symbol, event_date, messages):
-    path = f"finnhub/{data_type}/symbol={symbol}/event_date={event_date}/"
+    path = f"FINNHUB_API/{data_type}/{symbol}/event_date={event_date}/"
     filename = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + ".json"
     key = path + filename
     try:
