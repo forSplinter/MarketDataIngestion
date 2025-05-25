@@ -25,6 +25,7 @@ producer = KafkaProducer(
     retries=5,
 )
 
+
 def serialize_trade(symbol, trade):
     return {
         "symbol": symbol,
@@ -38,6 +39,7 @@ def serialize_trade(symbol, trade):
         "event_date": trade.timestamp.date().isoformat(),
     }
 
+
 def get_previous_market_day():
     """Retourne la dernière date de marché ouvré (exclut les week-ends)."""
     day = datetime.now(timezone.utc) - timedelta(days=1)
@@ -45,10 +47,13 @@ def get_previous_market_day():
         day -= timedelta(days=1)
     return day
 
+
 def run_stream():
     market_day = get_previous_market_day()
-    start = market_day.replace(hour=13, minute=30, second=0, microsecond=0)  # 9h30 NY (UTC)
-    end = market_day.replace(hour=20, minute=0, second=0, microsecond=0)     # 16h NY (UTC)
+    start = market_day.replace(
+        hour=13, minute=30, second=0, microsecond=0
+    )  # 9h30 NY (UTC)
+    end = market_day.replace(hour=20, minute=0, second=0, microsecond=0)  # 16h NY (UTC)
 
     print(f"Fetching trades for {market_day.date()} from {start} to {end}")
 
@@ -61,13 +66,14 @@ def run_stream():
             print(f"Fetched {len(trades)} trades for {symbol}")
             for trade in trades:
                 serialized = serialize_trade(symbol, trade)
-                producer.send(KAFKA_TOPIC, value=serialized)
+                producer.send(KAFKA_TOPIC, key=symbol.encode("utf-8"), value=serialized)
 
         except Exception as e:
             print(f"Error fetching trades for {symbol}: {e}")
 
     producer.flush()
     print("All trades sent to Kafka.")
+
 
 if __name__ == "__main__":
     run_stream()

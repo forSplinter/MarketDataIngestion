@@ -14,7 +14,7 @@ services:
       retries: 5
       timeout: 5s
     networks:
-      - alpacastream
+      - marketingestion
 
   broker:
     image: confluentinc/cp-kafka:7.4.0
@@ -43,7 +43,7 @@ services:
       retries: 5
       timeout: 5s
     networks:
-      - alpacastream
+      - marketingestion
 
   minio:
     image: minio/minio
@@ -63,7 +63,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - alpacastream
+      - marketingestion
 
   kafka-topic-init:
     build: 
@@ -75,7 +75,7 @@ services:
       broker:
         condition: service_healthy
     networks:
-      - alpacastream
+      - marketingestion
     restart: "no"
 
   minio-bucket-init:
@@ -88,7 +88,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - alpacastream
+      - marketingestion
     restart: "no"
 
   spark:
@@ -105,7 +105,7 @@ services:
       - ./data/minio:/data
     command: sleep infinity
     networks:
-      - alpacastream
+      - marketingestion
 
   postgres:
     image: postgres:15
@@ -121,7 +121,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - alpacastream
+      - marketingestion
 
   x-airflow-common:
     &airflow-common
@@ -130,10 +130,10 @@ services:
       - .env
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@postgres:5432/${POSTGRES_DB:-marketdb}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-marketdata}:${POSTGRES_PASSWORD:-marketdata}@postgres:5432/${POSTGRES_DB:-marketdb}
       AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY:-}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-      AIRFLOW__CORE__LOGGING_LEVEL: INFO
+      AIRFLOW__LOGGING__LOGGING_LEVEL: INFO
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -141,23 +141,23 @@ services:
     depends_on:
       - postgres
     networks:
-      - alpacastream
+      - marketingestion
 
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
     entrypoint: /bin/bash
     command: >
-      -c "airflow users list || (airflow db init && airflow users create
-        --role Admin
-        --username ${AIRFLOW_ADMIN_USER:-admin}
-        --password ${AIRFLOW_ADMIN_PASSWORD:-airflow}
-        --firstname ${AIRFLOW_ADMIN_FIRSTNAME:-Admin}
-        --lastname ${AIRFLOW_ADMIN_LASTNAME:-User}
-        --email ${AIRFLOW_ADMIN_EMAIL:-email})"
+      -c "airflow db init && airflow users create
+      --role Admin
+      --username ${AIRFLOW_ADMIN_USER:-admin}
+      --password ${AIRFLOW_ADMIN_PASSWORD:-airflow}
+      --firstname ${AIRFLOW_ADMIN_FIRSTNAME:-Admin}
+      --lastname ${AIRFLOW_ADMIN_LASTNAME:-User}
+      --email ${AIRFLOW_ADMIN_EMAIL:-email}"
     restart: on-failure
     networks:
-      - alpacastream
+      - marketingestion
 
   airflow-webserver:
     <<: *airflow-common
@@ -167,7 +167,7 @@ services:
       - "8080:8080"
     restart: always
     networks:
-      - alpacastream
+      - marketingestion
 
   airflow-scheduler:
     <<: *airflow-common
@@ -175,7 +175,7 @@ services:
     command: airflow scheduler
     restart: always
     networks:
-      - alpacastream
+      - marketingestion
 
   mongodb:
     image: mongo:6.0
@@ -183,11 +183,12 @@ services:
     ports:
       - "27017:27017"
     networks:
-      - alpacastream
+      - marketingestion
 
   alpaca-producer:
     build:
       context: ./producers
+      dockerfile: Dockerfile
     env_file:
       - .env
     command: python ingestion/alpaca_ingestion.py
@@ -197,58 +198,89 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
     depends_on:
       broker:
         condition: service_healthy
       minio:
         condition: service_healthy
     networks:
-      - alpacastream
+      - marketingestion
+
 
   finnhub-producer:
     build:
       context: ./producers
+      dockerfile: Dockerfile
     env_file:
       - .env
-    commmand: python ingestion/finnhub_ingestion.py
+    command: python ingestion/finnhub_ingestion.py
     environment:
       KAFKA_BROKER: broker:29092
-      KAFKA_TOPIC: finnhub_raw_stream
+      KAFKA_RECO_TOPIC: finnhub_raw_stream
+      KAFKA_NEWS_TOPIC: finnhub_news_stream
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
     depends_on:
       broker:
         condition: service_healthy
       minio:
         condition: service_healthy
     networks:
-      - alpacastream
+      - marketingestion
+
   alpaca-consumer:
     build:
       context: ./consumers
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: python kafka_consumer_alpaca.py
     environment:
       KAFKA_BROKER: broker:29092
       KAFKA_TOPIC: alpaca_raw_stream
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
     depends_on:
       broker:
         condition: service_healthy
       minio:
         condition: service_healthy
     networks:
-      - alpacastream
+      - marketingestion
+
+  finnhub-consumer:
+    build:
+      context: ./consumers
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: python kafka_consumer_finnnhub.py
+    environment:
+      KAFKA_BROKER: broker:29092
+      KAFKA_TOPIC: finnhub_raw_stream,finnhub_news_stream
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+    depends_on:
+      broker:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - marketingestion
 
 networks:
-  alpacastream:
+  marketingestion:
     driver: bridge
 
 volumes:
