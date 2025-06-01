@@ -7,8 +7,8 @@ import finnhub
 
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "broker:29092")
-KAFKA_RECO_TOPIC = os.getenv("KAFKA_TOPIC", "finnhub_raw_stream")
-KAFKA_NEWS_TOPIC = os.getenv("KAFKA_TOPIC", "finnhub_news_stream")
+KAFKA_RECO_TOPIC = os.getenv("KAFKA_TOPICS", "finnhub_raw_stream")
+KAFKA_NEWS_TOPIC = os.getenv("KAFKA_TOPICS", "finnhub_news_stream")
 
 SYMBOLS = ["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN"]
 

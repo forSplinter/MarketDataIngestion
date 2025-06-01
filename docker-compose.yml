@@ -256,16 +256,39 @@ services:
     networks:
       - marketingestion
 
-  finnhub-consumer:
+  finnhub-consumer-news:
     build:
       context: ./consumers
       dockerfile: Dockerfile
     env_file:
       - .env
-    command: python extraction/kafka_consumer_finnhub.py
+    command: python extraction/kafka_consumer_finnhub_news.py
     environment:
       KAFKA_BROKER: broker:29092
-      KAFKA_TOPIC: finnhub_raw_stream,finnhub_news_stream
+      KAFKA_TOPIC: finnhub_news_stream
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      broker:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - marketingestion
+
+  finnhub-consumer-reco:
+    build:
+      context: ./consumers
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: python extraction/kafka_consumer_finnhub_reco.py
+    environment:
+      KAFKA_BROKER: broker:29092
+      KAFKA_TOPIC: finnhub_raw_stream
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
