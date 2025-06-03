@@ -92,16 +92,23 @@ services:
     restart: "no"
 
   spark:
-    image: bitnami/spark:latest
-    container_name: spark
+    build: 
+      context: ./spark_jobs
+      dockerfile: Dockerfile 
+    env_file:
+      - .env
     environment:
       MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      - minio
     ports:
       - "4040:4040"
     volumes:
-      - ./spark_jobs:/opt/bitnami/spark/jobs
+      - ./spark_jobs/jobs:/opt/bitnami/spark/jobs
       - ./data/minio:/data
     command: sleep infinity
     networks:
