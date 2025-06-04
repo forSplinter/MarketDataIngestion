@@ -73,8 +73,9 @@ def consume_messages():
 
             key = (symbol, event_date)
             buffer[key].append(value)
-
-            if len(buffer[key]) >= 10:
+            
+            print(f"[DEBUG] Buffer length for {key} = {len(buffer[key])}")
+            if len(buffer[key]) >= 1:
                 upload_to_minio(symbol, event_date, buffer[key])
                 buffer[key].clear()
 
