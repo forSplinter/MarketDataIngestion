@@ -1,6 +1,5 @@
 apache-airflow==2.6.1
 apache-airflow-providers-postgres==5.4.0
 apache-airflow-providers-amazon==6.2.0
-apache-airflow-providers-apache-spark==4.0.0
 pydantic==1.10.14
 
