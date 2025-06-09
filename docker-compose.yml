@@ -364,11 +364,72 @@ services:
     networks:
       - marketingestion
 
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.10.2
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=marketdata
+      - discovery.seed_hosts=es01
+      - cluster.initial_master_nodes=es01
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1 
+
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es-data-es01:/usr/share/elasticsearch/data
+    networks:
+      - marketingestion
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq 'red'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+  kibana:
+    image: docker.elastic.co/kibana/kibana-oss:7.10.2
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://es01:9200"]'
+    ports:
+      - "5601:5601"
+    depends_on:
+      es01:
+        condition: service_healthy
+    networks:
+      - marketingestion
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash-oss:7.10.2
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/data:/usr/share/logstash/data
+
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    environment:
+      LOG_LEVEL: "debug"
+      ES_JAVA_OPTS: "-Xmx512m -Xms512m"
+      ELASTICSEARCH_HOSTS: "http://es01:9200"
+    depends_on:
+      es01: 
+        condition: service_healthy
+    networks:
+        - marketingestion
+
 networks:
   marketingestion:
     driver: bridge
 
 volumes:
   postgres_data:
+  es-data-es01:
 
 
